@@ -7,15 +7,31 @@
 
     <groupId>io.github.llewvallis</groupId>
     <artifactId>command-builder</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
 
     <name>Command Builder</name>
     <description>A framework for constructing Bukkit commands</description>
+    <url>https://github.com/LlewVallis/command-builder</url>
 
-    <!--
-      @TODO Set project URL
-      <url></url>
-    -->
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://raw.githubusercontent.com/LlewVallis/command-builder/master/LICENSE</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Llew Vallis</name>
+            <email>llewvallis@gmail.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/LlewVallis/command-builder.git</connection>
+        <developerConnection>scm:git:ssh://github.com:LlewVallis/command-builder.git</developerConnection>
+        <url>http://github.com/LlewVallis/command-builder/tree/master</url>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
