@@ -22,10 +22,12 @@ public abstract class SubCommand {
     /**
      * Configure the command builder by, for example, adding arguments.
      *
-     * By default this does nothing, but can be overridden if needed. Note that the usage message will already be
-     * configured for the builder.
+     * By default this delegates to {@link CommandBuilder#infer(Object)} with the current instance, but that can be
+     * overridden if needs be.
      */
-    protected void configure(CommandBuilder builder) { }
+    protected void configure(CommandBuilder builder) {
+        builder.infer(this);
+    }
 
     /**
      * Create a command callback used for {@link CommandBuilder#build(CommandCallback)}.

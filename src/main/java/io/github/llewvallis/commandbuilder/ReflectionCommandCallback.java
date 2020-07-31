@@ -7,14 +7,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 
 /**
  * A {@link CommandCallback} which delegates to a method annotated with {@link ExecuteCommand} on a provided instance.
@@ -235,5 +231,116 @@ public class ReflectionCommandCallback implements CommandCallback {
         }
 
         return result;
+    }
+
+    /* package-private */ static void infer(CommandBuilder builder, Object instance) {
+        Class<?> cls = instance.getClass();
+
+        Method method = getMethodByAnnotation(ExecuteCommand.class, cls, cls);
+        Parameter[] parameters = method.getParameters();
+
+        for (int i = 1; i < parameters.length; i++) {
+            Parameter parameter = parameters[i];
+            ArgumentParser<?> parser = getParserForParameter(instance, cls, method, parameter);
+
+            if (parameter.isVarArgs()) {
+                builder.variadicArgument(parser);
+            } else {
+                builder.argument(parser);
+            }
+        }
+    }
+
+    private static ArgumentParser<?> getParserForParameter(Object instance, Class<?> cls, Method method, Parameter parameter) {
+        Arg annotation = parameter.getAnnotation(Arg.class);
+
+        if (annotation == null) {
+            throw new ReflectionCommandCallbackException(parameter + " in " + method + " was not annotated with " +
+                    Arg.class);
+        }
+
+        Class<?> parserClass = annotation.value();
+        String parserMember = annotation.member();
+
+        if ((parserClass == void.class) == (parserMember.isEmpty())) {
+            throw new ReflectionCommandCallbackException("exactly one of value or member must be specified for " +
+                    parameter + " in " + method);
+        }
+
+        if (parserClass == void.class) {
+            AccessibleObject fieldOrMethod = getFieldOrMethodByName(parserMember, cls, cls);
+            fieldOrMethod.setAccessible(true);
+
+            Object value;
+            try {
+                if (fieldOrMethod instanceof Field) {
+                    value = ((Field) fieldOrMethod).get(instance);
+                } else {
+                    value = ((Method) fieldOrMethod).invoke(instance);
+                }
+            } catch (InvocationTargetException e) {
+                throw new ReflectionCommandCallbackException("method " + fieldOrMethod + " threw an unhandled exception", e);
+            } catch (IllegalAccessException e){
+                throw new RuntimeException(e);
+            }
+
+            try {
+                ArgumentParser<?> parser = (ArgumentParser<?>) value;
+                if (parser == null) {
+                    throw new ReflectionCommandCallbackException("got null from " + fieldOrMethod);
+                }
+
+                if (annotation.optional()) {
+                    parser = parser.optional();
+                }
+
+                return parser;
+            } catch (ClassCastException e) {
+                throw new ReflectionCommandCallbackException("got " + value + " from " + fieldOrMethod + " but expected" +
+                        " an argument parser");
+            }
+        } else {
+            try {
+                Constructor constructor = parserClass.getDeclaredConstructor();
+                constructor.setAccessible(true);
+
+                return (ArgumentParser<?>) constructor.newInstance();
+            } catch (InstantiationException e) {
+                throw new ReflectionCommandCallbackException(parserClass + " was abstract");
+            } catch (InvocationTargetException e) {
+                throw new ReflectionCommandCallbackException("constructor on " + parserClass + " threw an unhandled " +
+                        "exception", e);
+            } catch (NoSuchMethodException e) {
+                throw new ReflectionCommandCallbackException("no zero argument constructor on " + parserClass);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static AccessibleObject getFieldOrMethodByName(String name, Class<?> currentTarget, Class<?> originalTarget) {
+        try {
+            return currentTarget.getDeclaredMethod(name);
+        } catch (NoSuchMethodException ignored) { }
+
+        try {
+            return currentTarget.getDeclaredField(name);
+        } catch (NoSuchFieldException ignored) { }
+
+        try {
+            return currentTarget.getMethod(name);
+        } catch (NoSuchMethodException ignored) { }
+
+        try {
+            return currentTarget.getField(name);
+        } catch (NoSuchFieldException ignored) { }
+
+        Class<?> parent = currentTarget.getSuperclass();
+        if (parent == null) {
+            throw new ReflectionCommandCallbackException("no zero argument methods or fields in " + originalTarget +
+                    " were named " + name);
+        } else {
+            return getFieldOrMethodByName(name, parent, originalTarget);
+        }
     }
 }

@@ -136,13 +136,13 @@ public class Plugin extends JavaPlugin {
     }
 
     private static class Hello extends SubCommand {
-    
+
         // The label used to call the command
         @Override
         public String getName() {
             return "hello";
         }
-   
+
         // A description detailing how the command works etc. for the help menu
         @Override
         public String getDescription() {
@@ -155,7 +155,8 @@ public class Plugin extends JavaPlugin {
             return "hello <person>";
         }
 
-        // Setup the command builder without building it. By default a reflection command callback is used
+        // Setup the command builder without building it. By default a reflection command callback is used when 
+        // constructing
         @Override
         protected void configure(CommandBuilder builder) {
             builder.argument(new StringArgument());
@@ -190,13 +191,13 @@ public class Plugin extends JavaPlugin {
             return Optional.of("greet.howdy");
         }
 
-        @Override
-        protected void configure(CommandBuilder builder) {
-            builder.argument(new StringArgument());
-        }
-
         @ExecuteCommand
-        private void execute(CommandContext ctx, String person) {
+        private void execute(
+                CommandContext ctx,
+                // Use annotation based argument inference. Also works for normal commands by calling the
+                // CommandBuilder.infer method
+                @Arg(StringArgument.class) String person
+        ) {
             ctx.getSender().sendMessage("Howdy " + person);
         }
     }

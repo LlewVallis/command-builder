@@ -17,6 +17,7 @@ public class CommandBuilder {
     private String usageMessage = null;
 
     private boolean constructed = false;
+    private boolean canAddArgument = true;
 
     /**
      * Append a normal argument to the command.
@@ -41,6 +42,26 @@ public class CommandBuilder {
         assertCanAddArgument();
 
         variadicArgument = argument;
+        canAddArgument = false;
+
+        return this;
+    }
+
+    /**
+     * Infer arguments from an object that is usable with {@link ReflectionCommandCallback}.
+     *
+     * To use argument inference, each parameter of your execution method should be annotated with {@link Arg}. No
+     * arguments, including variadic arguments, can be set before or after this operation.
+     */
+    public CommandBuilder infer(Object instance) {
+        assertNotConstructed();
+
+        if (arguments.size() != 0 || variadicArgument != null) {
+            throw new IllegalStateException("arguments already added");
+        }
+
+        ReflectionCommandCallback.infer(this, instance);
+        canAddArgument = false;
 
         return this;
     }
@@ -90,7 +111,7 @@ public class CommandBuilder {
     }
 
     private void assertCanAddArgument() {
-        if (variadicArgument != null) {
+        if (!canAddArgument) {
             throw new IllegalArgumentException("no arguments can be added after a variadic argument");
         }
     }
