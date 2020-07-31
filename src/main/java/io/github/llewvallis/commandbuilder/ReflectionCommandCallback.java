@@ -43,22 +43,22 @@ public class ReflectionCommandCallback implements CommandCallback {
         TextComponent errorMessage = new TextComponent("Incorrect command: " + cause.getMessage());
         errorMessage.setColor(ChatColor.RED);
 
-        TextComponent usageMessage = new TextComponent("Usage: " + context.usageMessage);
+        TextComponent usageMessage = new TextComponent("Usage: " + context.getUsageMessage());
         usageMessage.setItalic(true);
         usageMessage.setColor(ChatColor.RED);
 
-        context.sender.spigot().sendMessage(errorMessage);
-        context.sender.spigot().sendMessage(usageMessage);
+        context.getSender().spigot().sendMessage(errorMessage);
+        context.getSender().spigot().sendMessage(usageMessage);
     }
 
     @SneakyThrows({ IllegalAccessException.class })
     private void runCallback(Method callbackMethod, List<Object> argumentValues,
                                        List<Object> variadicArgumentValues, CommandContext context) {
-        if (callbackMethod.isAnnotationPresent(PlayerOnlyCommand.class) && !(context.sender instanceof Player)) {
+        if (callbackMethod.isAnnotationPresent(PlayerOnlyCommand.class) && !(context.getSender() instanceof Player)) {
             TextComponent message = new TextComponent("Only players can use this command");
             message.setColor(ChatColor.RED);
 
-            context.sender.spigot().sendMessage(message);
+            context.getSender().spigot().sendMessage(message);
             return;
         }
 
@@ -67,7 +67,7 @@ public class ReflectionCommandCallback implements CommandCallback {
         try {
             runCallbackUnchecked(callbackMethod, argumentValues, variadicArgumentValues);
         } catch (InvocationTargetException e) {
-            Bukkit.getLogger().log(Level.SEVERE, "Unhandled exception in command callback for " + context.command, e.getCause());
+            Bukkit.getLogger().log(Level.SEVERE, "Unhandled exception in command callback for " + context.getCommand(), e.getCause());
             throw new ReflectionCommandCallbackException("unhandled exception in callback method ", e);
         }
     }

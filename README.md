@@ -113,55 +113,89 @@ public class Plugin extends JavaPlugin {
 ## Composite commands and subcommands
 
 ```java
-import io.github.llewvallis.commandbuilder.CommandContext;
-import io.github.llewvallis.commandbuilder.CompositeCommandBuilder;
-import io.github.llewvallis.commandbuilder.ExecuteCommand;
-import io.github.llewvallis.commandbuilder.ReflectionCommandCallback;
-import io.github.llewvallis.commandbuilder.arguments.StringSetArgument;
+import io.github.llewvallis.commandbuilder.*;
+import io.github.llewvallis.commandbuilder.arguments.StringArgument;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.Optional;
 
 public class Plugin extends JavaPlugin {
 
-    // You are limited to one command per class. This executes the hello command
-    private static class Hello {
-        @ExecuteCommand
-        private void execute(CommandContext ctx, String person) {
-            ctx.sender.sendMessage("Hello " + person);
-        }
-    }
-
-    // You are limited to one command per class. This executes the howdy command
-    private static class Howdy {
-        @ExecuteCommand
-        private void execute(CommandContext ctx, String person) {
-            ctx.sender.sendMessage("Howdy " + person);
-        }
-    }
-
     @Override
     public void onEnable() {
-        // Creates a composite command which allows accessing several subcommands. A help subcommand is also generated
-        // automatically
+        // Creates a composite command which can be used as `greet <hello|howdy|help> [args...]`
         new CompositeCommandBuilder()
-                .command(
-                        // Specify name, description and usage
-                        "hello", "Says hello", "hello <Bob|Jeff>",
-                        // Configure the command's arguments
-                        builder -> builder.argument(new StringSetArgument("Bob", "Jeff")),
-                        // Set the callback
-                        new ReflectionCommandCallback(new Hello())
-                )
-                .command(
-                        // Specify name, description and usage
-                        "howdy", "Says howdy", "howdy <Bob|Jeff>",
-                        // Configure the command's arguments
-                        builder -> builder.argument(new StringSetArgument("Bob", "Jeff")),
-                        // Set the callback
-                        new ReflectionCommandCallback(new Howdy())
-                )
-                // Binds the builder to "greet". The zero argument build method can also be used to just generate a
-                // TabExecutor
+                // Register the subcommands. A help command is automatically registered
+                .command(new Hello())
+                .command(new Howdy())
+                // The zero argument build method can be used to just get a TabExecutor
                 .build(getCommand("greet"));
+    }
+
+    private static class Hello extends SubCommand {
+    
+        // The label used to call the command
+        @Override
+        public String getName() {
+            return "hello";
+        }
+   
+        // A description detailing how the command works etc. for the help menu
+        @Override
+        public String getDescription() {
+            return "Says hello";
+        }
+
+        // The message used in the help menu and the command error message
+        @Override
+        public String getUsageMessage() {
+            return "hello <person>";
+        }
+
+        // Setup the command builder without building it. By default a reflection command callback is used
+        @Override
+        protected void configure(CommandBuilder builder) {
+            builder.argument(new StringArgument());
+        }
+
+        @ExecuteCommand
+        private void execute(CommandContext ctx, String person) {
+            ctx.getSender().sendMessage("Hello " + person);
+        }
+    }
+
+    private static class Howdy extends SubCommand {
+
+        @Override
+        public String getName() {
+            return "howdy";
+        }
+
+        @Override
+        public String getDescription() {
+            return "Say howdy";
+        }
+
+        @Override
+        public String getUsageMessage() {
+            return "howdy <person>";
+        }
+
+        // Require that only people with the `greet.howdy` permission can access the command
+        @Override
+        public Optional<String> getPermission() {
+            return Optional.of("greet.howdy");
+        }
+
+        @Override
+        protected void configure(CommandBuilder builder) {
+            builder.argument(new StringArgument());
+        }
+
+        @ExecuteCommand
+        private void execute(CommandContext ctx, String person) {
+            ctx.getSender().sendMessage("Howdy " + person);
+        }
     }
 }
 ```

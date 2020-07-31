@@ -1,31 +1,26 @@
 package io.github.llewvallis.commandbuilder;
 
-import io.github.llewvallis.commandbuilder.arguments.StringSetArgument;
 import lombok.*;
-import lombok.experimental.Delegate;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Allows building commands which contain several subcommands, including a generated help command.
  */
 public class CompositeCommandBuilder {
 
-    private final Map<String, SubCommand> subCommands = new HashMap<>();
+    /* package-private */ final Map<String, SubCommand> subCommands = new HashMap<>();
 
     private boolean constructed = false;
 
-    private HelpMessageTheme theme = new HelpMessageTheme();
+    /* package-private */ HelpMessageTheme theme = new HelpMessageTheme();
+    /* package-private */ Consumer<CommandSender> noArgsAction = this::showGeneralHelp;
 
     /**
      * Describes the coloring applied to the help message.
@@ -34,102 +29,28 @@ public class CompositeCommandBuilder {
     @NoArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class HelpMessageTheme {
+
         ChatColor borderColor = ChatColor.YELLOW;
         ChatColor headingColor = ChatColor.WHITE;
         ChatColor labelColor = ChatColor.GOLD;
         ChatColor textColor = ChatColor.WHITE;
     }
 
-    @Value
-    private static class SubCommand {
-        @Delegate
-        TabExecutor executor;
-        String description;
-        String usage;
-    }
-
-    private class Executor implements TabExecutor {
-        @Override
-        public boolean onCommand(CommandSender sender, Command command, String alias, String[] argumentStrings) {
-            if (argumentStrings.length == 0) {
-                showGeneralHelp(sender, alias);
-                return true;
-            }
-
-            String subCommandName = argumentStrings[0];
-            if (subCommands.containsKey(subCommandName)) {
-                String[] subCommandArguments = Arrays.copyOfRange(argumentStrings, 1, argumentStrings.length);
-                return subCommands.get(subCommandName).onCommand(sender, command, subCommandName, subCommandArguments);
-            } else {
-                TextComponent errorMessage = new TextComponent("That subcommand does not exist");
-                errorMessage.setColor(ChatColor.RED);
-                sender.spigot().sendMessage(errorMessage);
-
-                return true;
-            }
-        }
-
-        @Override
-        public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] argumentStrings) {
-            // Shouldn't happen, but handle it nicely just in-case
-            if (argumentStrings.length == 0) {
-                Bukkit.getLogger().warning("received zero length argument list when tab completing '" + alias + "'");
-                return Collections.emptyList();
-            }
-
-            String subCommandName = argumentStrings[0];
-
-            if (argumentStrings.length == 1) {
-                return subCommands.keySet().stream()
-                        .filter(subCommand -> subCommand.toLowerCase().startsWith(subCommandName.toLowerCase()))
-                        .collect(Collectors.toList());
-            }
-
-            if (subCommands.containsKey(subCommandName)) {
-                String[] subCommandArguments = Arrays.copyOfRange(argumentStrings, 1, argumentStrings.length);
-                return subCommands.get(subCommandName).onTabComplete(sender, command, subCommandName, subCommandArguments);
-            } else {
-                return Collections.emptyList();
-            }
-        }
-    }
-
     /**
      * Add a new normal subcommand to the builder.
-     *
-     * @param configurer used to configure the {@link CommandBuilder}, e.g. with arguments. The usage message is already
-     *                   configured
      */
-    public CompositeCommandBuilder command(String name, String description, String usage, Consumer<CommandBuilder> configurer, CommandCallback callback) {
+    public CompositeCommandBuilder command(SubCommand subCommand) {
         assertNotConstructed();
-
-        CommandBuilder builder = new CommandBuilder();
-        builder.usageMessage(usage);
-        configurer.accept(builder);
-        TabExecutor executor = builder.build(callback);
-
-        subCommands.put(name, new SubCommand(executor, description, usage));
-
+        subCommands.put(subCommand.getName(), subCommand);
         return this;
     }
 
     /**
-     * Add a new subcommand, containing nested subcommands to the builder.
-     *
-     * @param configurer used to configure the {@link CompositeCommandBuilder}, e.g. with commands. The builder inherits
-     *                   the current {@link HelpMessageTheme}
+     * Add a new composite subcommand, containing nested subcommands, to the builder.
      */
-    public CompositeCommandBuilder nest(String name, String description, Consumer<CompositeCommandBuilder> configurer) {
+    public CompositeCommandBuilder nest(CompositeSubCommand subCommand) {
         assertNotConstructed();
-
-        CompositeCommandBuilder builder = new CompositeCommandBuilder();
-        builder.helpMessageTheme(theme);
-        configurer.accept(builder);
-        TabExecutor executor = builder.build();
-
-        subCommands.put(name, new SubCommand(executor, description, null));
-
-        return this;
+        return command(new CompositeSubCommandImpl(this, subCommand));
     }
 
     /**
@@ -142,35 +63,26 @@ public class CompositeCommandBuilder {
     }
 
     /**
+     * Override the behaviour for when the command is invoked without arguments.
+     */
+    public CompositeCommandBuilder onEmptyInvocation(Consumer<CommandSender> action) {
+        assertNotConstructed();
+        noArgsAction = action;
+        return this;
+    }
+
+    /**
      * Create an executor which handles delegating to subcommands.
      */
     public TabExecutor build() {
         assertNotConstructed();
 
         if (!subCommands.containsKey("help")) {
-            Set<String> availableSubCommandNames = new HashSet<>(subCommands.keySet());
-            availableSubCommandNames.add("help");
-
-            command(
-                    "help",
-                    "Show help for subcommands",
-                    "help [subcommand]",
-                    builder -> builder.argument(new StringSetArgument(availableSubCommandNames).optional()),
-                    new ReflectionCommandCallback(new Object() {
-                        @ExecuteCommand
-                        public void execute(CommandContext ctx, String subCommand) {
-                            if (subCommand == null) {
-                                showGeneralHelp(ctx.sender, ctx.alias);
-                            } else {
-                                showSpecificHelp(ctx.sender, subCommand);
-                            }
-                        }
-                    })
-            );
+            command(new HelpCommandImpl(this));
         }
 
         constructed = true;
-        return new Executor();
+        return new CompositeCommandImpl(this);
     }
 
     /**
@@ -184,43 +96,44 @@ public class CompositeCommandBuilder {
         command.setTabCompleter(executor);
 
         if (command.getUsage().isBlank()) {
-            String newUsage = command.getLabel() + " <" + String.join("|", subCommands.keySet()) + ">";
+            String newUsage = command.getLabel() + " <subcommand>";
             command.setUsage(newUsage);
         }
 
         return executor;
     }
 
-    private void showGeneralHelp(CommandSender sender, String alias) {
-        ComponentBuilder message = createHelpHeader(alias);
+    /* package-private */ void showGeneralHelp(CommandSender sender) {
+        ComponentBuilder message = createHelpHeader("all");
 
-        subCommands.entrySet().stream()
-                .filter(entry -> entry.getValue().usage == null)
-                .forEach(entry -> {
-                    message.append("\n" + entry.getKey() + ": ").color(theme.labelColor);
-                    message.append(shortenDescription(entry.getValue().description)).color(theme.textColor);
+        Collection<SubCommand> permittedSubCommands = permittedSubCommands(sender).values();
+
+        permittedSubCommands.stream()
+                .filter(SubCommand::isNested)
+                .forEach(subCommand -> {
+                    message.append("\n" + subCommand.getName()).color(theme.labelColor);
+                    message.append("\n\u2514 " + shortenDescription(subCommand.getDescription())).color(theme.textColor);
                 });
 
-        subCommands.values().stream()
-                .filter(subCommand -> subCommand.usage != null)
+        permittedSubCommands.stream()
+                .filter(subCommand -> !subCommand.isNested())
                 .forEach(subCommand -> {
-                    message.append("\n" + subCommand.usage + ": ").color(theme.labelColor);
-                    message.append(shortenDescription(subCommand.description)).color(theme.textColor);
+                    message.append("\n" + subCommand.getUsageMessage()).color(theme.labelColor);
+                    message.append("\n\u2514 " + shortenDescription(subCommand.getDescription())).color(theme.textColor);
                 });
 
         sender.spigot().sendMessage(message.create());
     }
 
-    private void showSpecificHelp(CommandSender sender, String subCommandName) {
-        SubCommand subCommand = subCommands.get(subCommandName);
-        ComponentBuilder message = createHelpHeader(subCommandName);
+    /* package-private */ void showSpecificHelp(CommandSender sender, SubCommand subCommand) {
+        ComponentBuilder message = createHelpHeader(subCommand.getName());
 
         message.append("\nDescription: ").color(theme.labelColor);
-        message.append(subCommand.description).color(theme.textColor);
+        message.append(subCommand.getDescription()).color(theme.textColor);
 
-        if (subCommand.usage != null) {
+        if (!subCommand.isNested()) {
             message.append("\nUsage: ").color(theme.labelColor);
-            message.append(subCommand.usage).color(theme.textColor);
+            message.append(subCommand.getUsageMessage()).color(theme.textColor);
         }
 
         sender.spigot().sendMessage(message.create());
@@ -245,6 +158,16 @@ public class CompositeCommandBuilder {
         } else {
             return description;
         }
+    }
+
+    /* package-private */ Map<String, SubCommand> permittedSubCommands(CommandSender sender) {
+        Map<String, SubCommand> permittedSubCommands = new HashMap<>(subCommands);
+        permittedSubCommands.values().removeIf(subCommand ->
+                subCommand.getPermission()
+                        .map(perm -> !sender.hasPermission(perm))
+                        .orElse(false)
+        );
+        return permittedSubCommands;
     }
 
     private void assertNotConstructed() {

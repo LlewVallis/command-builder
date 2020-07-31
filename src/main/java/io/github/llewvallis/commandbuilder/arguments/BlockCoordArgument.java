@@ -52,7 +52,7 @@ public class BlockCoordArgument implements ArgumentParser<Integer> {
         }
 
         if (relative) {
-            value += getSenderCoord(context.sender).orElseThrow(() ->
+            value += getSenderCoord(context.getSender()).orElseThrow(() ->
                     new ArgumentParseException("cannot use relative coordinates in this context"));
         }
 
@@ -61,7 +61,7 @@ public class BlockCoordArgument implements ArgumentParser<Integer> {
 
     @Override
     public Set<String> complete(List<Object> parsedArguments, String currentArgument, int position, CommandContext context) {
-        return getSenderCoord(context.sender)
+        return getSenderCoord(context.getSender())
                 .map(Object::toString)
                 .map(Set::of)
                 .orElse(Collections.emptySet());
