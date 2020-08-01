@@ -3,9 +3,9 @@ package io.github.llewvallis.commandbuilder;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class ReflectionUtil {
+/* package-private */ class ReflectionUtil {
 
-    /* package-private */ Class<?> boxedType(Class<?> type) {
+    public Class<?> boxedType(Class<?> type) {
         if (type == int.class) {
             return Integer.class;
         } else if (type == byte.class) {
