@@ -39,4 +39,9 @@ public class TransformArgument<T, U> implements ArgumentParser<U> {
     public Set<String> complete(List<Object> parsedArguments, String currentArgument, int position, CommandContext context) {
         return underlying.complete(parsedArguments, currentArgument, position, context);
     }
+
+    @Override
+    public boolean isOptional() {
+        return underlying.isOptional();
+    }
 }

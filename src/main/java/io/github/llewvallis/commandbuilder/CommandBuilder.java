@@ -50,9 +50,7 @@ public class CommandBuilder {
     /**
      * Infer arguments from an object that is usable with {@link ReflectionCommandCallback}.
      *
-     * To use argument inference, each parameter of your execution method should be annotated with {@link Arg} or
-     * another annotation marked with {@link ParserAnnotation}. No arguments, including variadic arguments, can be set
-     * before or after this operation.
+     * No arguments, including variadic arguments, can be set before or after this operation.
      */
     public CommandBuilder infer(Object instance) {
         assertNotConstructed();
@@ -61,7 +59,7 @@ public class CommandBuilder {
             throw new IllegalStateException("arguments already added");
         }
 
-        ReflectionCommandCallback.infer(this, instance);
+        ArgumentInference.infer(this, instance);
         canAddArgument = false;
 
         return this;

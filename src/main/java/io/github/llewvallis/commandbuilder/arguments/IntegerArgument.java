@@ -1,9 +1,6 @@
 package io.github.llewvallis.commandbuilder.arguments;
 
-import io.github.llewvallis.commandbuilder.CommandContext;
-import io.github.llewvallis.commandbuilder.ArgumentParseException;
-import io.github.llewvallis.commandbuilder.ArgumentParser;
-import io.github.llewvallis.commandbuilder.ParserAnnotation;
+import io.github.llewvallis.commandbuilder.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -36,8 +33,9 @@ public class IntegerArgument implements ArgumentParser<Integer> {
         int max() default Integer.MAX_VALUE;
     }
 
-    private static IntegerArgument createParserFromAnnotation(Arg annotation) {
-        return new IntegerArgument(annotation.min(), annotation.max());
+    @ArgumentInferenceFactory
+    private static IntegerArgument createParserFromAnnotation(ArgumentInferenceContext<Arg> ctx) {
+        return new IntegerArgument(ctx.getAnnotation().min(), ctx.getAnnotation().max());
     }
 
     @Override

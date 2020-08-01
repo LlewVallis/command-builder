@@ -1,9 +1,6 @@
 package io.github.llewvallis.commandbuilder.arguments;
 
-import io.github.llewvallis.commandbuilder.ArgumentParseException;
-import io.github.llewvallis.commandbuilder.ArgumentParser;
-import io.github.llewvallis.commandbuilder.CommandContext;
-import io.github.llewvallis.commandbuilder.ParserAnnotation;
+import io.github.llewvallis.commandbuilder.*;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.BlockCommandSender;
@@ -46,8 +43,9 @@ public class BlockCoordArgument implements ArgumentParser<Integer> {
         Axis value();
     }
 
-    private static BlockCoordArgument createParserFromAnnotation(Arg annotation) {
-        return new BlockCoordArgument(annotation.value());
+    @ArgumentInferenceFactory
+    private static BlockCoordArgument createParserFromAnnotation(ArgumentInferenceContext<Arg> ctx) {
+        return new BlockCoordArgument(ctx.getAnnotation().value());
     }
 
     @Override

@@ -116,48 +116,51 @@ public class Plugin extends JavaPlugin {
 ## Argument inference
 
 ```java
-import io.github.llewvallis.commandbuilder.Arg;
 import io.github.llewvallis.commandbuilder.ArgumentParser;
+import io.github.llewvallis.commandbuilder.ClassArg;
 import io.github.llewvallis.commandbuilder.CommandBuilder;
 import io.github.llewvallis.commandbuilder.CommandContext;
 import io.github.llewvallis.commandbuilder.ExecuteCommand;
+import io.github.llewvallis.commandbuilder.MemberArg;
+import io.github.llewvallis.commandbuilder.OptionalArg;
 import io.github.llewvallis.commandbuilder.ReflectionCommandCallback;
+import io.github.llewvallis.commandbuilder.arguments.FloatArgument;
 import io.github.llewvallis.commandbuilder.arguments.IntegerArgument;
 import io.github.llewvallis.commandbuilder.arguments.StringArgument;
 import io.github.llewvallis.commandbuilder.arguments.StringSetArgument;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Plugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
         new CommandBuilder()
-            // Add arguments based on method annotations
+            // Add arguments based on the ExecuteCommand method in this instance
             .infer(this)
-            .build(new ReflectionCommandCallback(this), getCommand("print-powers-of-two"));
+            .build(new ReflectionCommandCallback(this), getCommand("command"));
     }
 
-    // Create an argument as a field to be reference from an annotation. Zero argument methods also work
+    // A custom argument we're storing in a field, will be referenced later. A zero argument method would also work
     private ArgumentParser<Integer> customArg = new IntegerArgument().map(x -> (int) Math.pow(2, x));
 
     @ExecuteCommand
     private void execute(
             CommandContext ctx,
-            // Calls the zero argument constructor of StringArgument and then calls optional() on it
-            @Arg(value = StringArgument.class, optional = true) String label,
-            // Uses StringSetArgument's custom Arg annotation to generate an argument
-            @StringSetArgument.Arg({ ",", ":", ";", "-" }) String separator,
-            // Fetch the argument from the customArg field
-            @Arg(member = "customArg") int... numbers
+            // Specify a class whose zero argument constructor will be used to generate the parser
+            @ClassArg(FloatArgument.class) float decimal,
+            // Specify a method or field which will be used to provide the parser
+            @MemberArg("customArg") int powerOfTwo,
+            // Use a custom annotation which constructs the parser for us
+            @StringSetArgument.Arg({ "Jeff", "Bob" }) String name,
+            // Mark a parser as optional. The order here is important
+            @ClassArg(StringArgument.class) @OptionalArg String optionalString
     ) {
-        String numberString = IntStream.of(numbers)
-                .mapToObj(Integer::toString)
-                .collect(Collectors.joining(separator));
-
-        ctx.getSender().sendMessage(label + " = " + numberString);
+        ctx.getSender().sendMessage(String.join("\n",
+                "decimal=" + decimal,
+                "powerOfTwo=" + powerOfTwo,
+                "name=" + name,
+                "optionalString=" + optionalString
+        ));
     }
 }
 ```
@@ -165,7 +168,7 @@ public class Plugin extends JavaPlugin {
 ## Composite commands and subcommands
 
 ```java
-import io.github.llewvallis.commandbuilder.Arg;
+import io.github.llewvallis.commandbuilder.ClassArg;
 import io.github.llewvallis.commandbuilder.CommandBuilder;
 import io.github.llewvallis.commandbuilder.CommandContext;
 import io.github.llewvallis.commandbuilder.CompositeCommandBuilder;
@@ -250,7 +253,7 @@ public class Plugin extends JavaPlugin {
                 CommandContext ctx,
                 // Use annotation based argument inference. Also works for normal commands by calling the
                 // CommandBuilder.infer method
-                @Arg(StringArgument.class) String person
+                @ClassArg(StringArgument.class) String person
         ) {
             ctx.getSender().sendMessage("Howdy " + person);
         }

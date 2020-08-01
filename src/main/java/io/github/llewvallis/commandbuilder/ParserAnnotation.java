@@ -8,9 +8,9 @@ import java.lang.annotation.Target;
 /**
  * Marks an annotation as being able to generate an {@link ArgumentParser} during argument inference.
  *
- * Any annotation marked with this one can be used in place of {@link Arg}. When inferring the argument, a static
- * factory method with the marked annotation as its only parameter will be called and its return value will be used as
- * the argument parser.
+ * When inferring the argument, a static factory method will be called and its return value will be used as the argument
+ * parser. The factory method must take {@link ArgumentInferenceContext} as its sole argument, unless
+ * {@link #transformsPrevious()} is true, in which case it must take an additional {@link ArgumentParser} argument.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
@@ -23,13 +23,11 @@ public @interface ParserAnnotation {
 
     /**
      * The name of the factory method.
-     *
-     * The factory method must:
-     * <ol>
-     *     <li>Be static.</li>
-     *     <li>Return an instance of {@link ArgumentParser}.</li>
-     *     <li>Take an instance of the marked annotation as its only argument.</li>
-     * </ol>
      */
     String factoryMethodName() default "createParserFromAnnotation";
+
+    /**
+     * Whether this annotation applies a transformation to an inferred parser rather than generate a parser itself.
+     */
+    boolean transformsPrevious() default false;
 }
