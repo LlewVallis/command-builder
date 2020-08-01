@@ -116,7 +116,12 @@ public class Plugin extends JavaPlugin {
 ## Composite commands and subcommands
 
 ```java
-import io.github.llewvallis.commandbuilder.*;
+import io.github.llewvallis.commandbuilder.Arg;
+import io.github.llewvallis.commandbuilder.CommandBuilder;
+import io.github.llewvallis.commandbuilder.CommandContext;
+import io.github.llewvallis.commandbuilder.CompositeCommandBuilder;
+import io.github.llewvallis.commandbuilder.ExecuteCommand;
+import io.github.llewvallis.commandbuilder.SubCommand;
 import io.github.llewvallis.commandbuilder.arguments.StringArgument;
 import org.bukkit.plugin.java.JavaPlugin;
 
