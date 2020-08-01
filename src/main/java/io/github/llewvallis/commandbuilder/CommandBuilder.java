@@ -6,6 +6,8 @@ import org.bukkit.command.TabExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A utility to quickly construct parsing logic for commands.
@@ -18,6 +20,8 @@ public class CommandBuilder {
 
     private boolean constructed = false;
     private boolean canAddArgument = true;
+
+    private DefaultInferenceProvider defaultInferenceProvider = DefaultInferenceProvider.getGlobal().fork();
 
     /**
      * Append a normal argument to the command.
@@ -59,9 +63,18 @@ public class CommandBuilder {
             throw new IllegalStateException("arguments already added");
         }
 
-        ArgumentInference.infer(this, instance);
+        ArgumentInference.infer(this, instance, defaultInferenceProvider);
         canAddArgument = false;
 
+        return this;
+    }
+
+    /**
+     * Transform the {@link DefaultInferenceProvider} for this builder, possibly replacing it.
+     */
+    public CommandBuilder configureDefaultInferenceProvider(Function<DefaultInferenceProvider, DefaultInferenceProvider> configurer) {
+        assertNotConstructed();
+        defaultInferenceProvider = configurer.apply(defaultInferenceProvider);
         return this;
     }
 

@@ -7,12 +7,13 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Log
 @UtilityClass
 /* package-private */ class ArgumentInference {
 
-    public void infer(CommandBuilder builder, Object instance) {
+    public void infer(CommandBuilder builder, Object instance, DefaultInferenceProvider defaultInferenceProvider) {
         Class<?> cls = instance.getClass();
 
         Method method = getMethodByAnnotation(ExecuteCommand.class, cls, cls);
@@ -20,7 +21,7 @@ import java.util.List;
 
         for (int i = 1; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            ArgumentParser<?> parser = getParserForParameter(instance, method, parameter);
+            ArgumentParser<?> parser = getParserForParameter(instance, method, parameter, defaultInferenceProvider);
 
             if (parameter.isVarArgs()) {
                 builder.variadicArgument(parser);
@@ -85,7 +86,9 @@ import java.util.List;
         }
     }
 
-    private ArgumentParser<?> getParserForParameter(Object instance, Method method, Parameter parameter) {
+    private ArgumentParser<?> getParserForParameter(Object instance, Method method, Parameter parameter,
+                                                    DefaultInferenceProvider defaultInferenceProvider) {
+        Optional<? extends ArgumentParser<?>> defaultParser = defaultInferenceProvider.getForType(parameter.getType());
         ArgumentParser<?> previousParser = null;
 
         for (Annotation annotation : parameter.getDeclaredAnnotations()) {
@@ -93,8 +96,9 @@ import java.util.List;
 
             if (metaAnnotation != null) {
                 if (metaAnnotation.transformsPrevious() && previousParser == null) {
-                    throw new ReflectionCommandCallbackException(parameter + " has a transforming annotation as its " +
-                            "first argument inference annotation");
+                    previousParser = defaultParser.orElseThrow(() -> new ReflectionCommandCallbackException(
+                            parameter + " had a transforming annotation as its first inference annotation and no " +
+                                    "default inference was available"));
                 }
 
                 if (!metaAnnotation.transformsPrevious() && previousParser != null) {
@@ -108,7 +112,8 @@ import java.util.List;
         }
 
         if (previousParser == null) {
-            throw new ReflectionCommandCallbackException(parameter + " in " + method + " was not annotated appropriately");
+            return defaultParser.orElseThrow(() -> new ReflectionCommandCallbackException(
+                    parameter + " had no inference annotations and no default inference was available"));
         }
 
         return previousParser;

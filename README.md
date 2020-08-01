@@ -135,9 +135,9 @@ public class Plugin extends JavaPlugin {
     @Override
     public void onEnable() {
         new CommandBuilder()
-            // Add arguments based on the ExecuteCommand method in this instance
-            .infer(this)
-            .build(new ReflectionCommandCallback(this), getCommand("command"));
+                // Add arguments based on the ExecuteCommand method in this instance
+                .infer(this)
+                .build(new ReflectionCommandCallback(this), getCommand("command"));
     }
 
     // A custom argument we're storing in a field, will be referenced later. A zero argument method would also work
@@ -152,6 +152,8 @@ public class Plugin extends JavaPlugin {
             @MemberArg("customArg") int powerOfTwo,
             // Use a custom annotation which constructs the parser for us
             @StringSetArgument.Arg({ "Jeff", "Bob" }) String name,
+            // Use the set of default inferences for common types
+            int integer,
             // Mark a parser as optional. The order here is important
             @ClassArg(StringArgument.class) @OptionalArg String optionalString
     ) {
@@ -159,6 +161,7 @@ public class Plugin extends JavaPlugin {
                 "decimal=" + decimal,
                 "powerOfTwo=" + powerOfTwo,
                 "name=" + name,
+                "integer=" + integer,
                 "optionalString=" + optionalString
         ));
     }
@@ -248,13 +251,9 @@ public class Plugin extends JavaPlugin {
             return Optional.of("greet.howdy");
         }
 
+        // If there is no configure method, arguments will be inferred
         @ExecuteCommand
-        private void execute(
-                CommandContext ctx,
-                // Use annotation based argument inference. Also works for normal commands by calling the
-                // CommandBuilder.infer method
-                @ClassArg(StringArgument.class) String person
-        ) {
+        private void execute(CommandContext ctx, String person) {
             ctx.getSender().sendMessage("Howdy " + person);
         }
     }

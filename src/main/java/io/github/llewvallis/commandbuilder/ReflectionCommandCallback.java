@@ -6,7 +6,6 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -151,32 +150,10 @@ public class ReflectionCommandCallback implements CommandCallback {
             } else {
                 Class<?> valueType = value.getClass();
 
-                if (!expectedType.isAssignableFrom(valueType) && !boxedType(expectedType).isAssignableFrom(valueType)) {
+                if (!expectedType.isAssignableFrom(valueType) && !ReflectionUtil.boxedType(expectedType).isAssignableFrom(valueType)) {
                     throw new ReflectionCommandCallbackException(valueType + " is not assignable to " + expectedType);
                 }
             }
-        }
-    }
-
-    private static Class<?> boxedType(Class<?> type) {
-        if (type == int.class) {
-            return Integer.class;
-        } else if (type == byte.class) {
-            return Byte.class;
-        } else if (type == short.class) {
-            return Short.class;
-        } else if (type == long.class) {
-            return Long.class;
-        } else if (type == float.class) {
-            return Float.class;
-        } else if (type == double.class) {
-            return Double.class;
-        } else if (type == boolean.class) {
-            return Boolean.class;
-        } else if (type == char.class) {
-            return Character.class;
-        } else {
-            return type;
         }
     }
 
@@ -191,7 +168,7 @@ public class ReflectionCommandCallback implements CommandCallback {
             for (Object value : variadicArgumentValues) {
                 Class<?> valueType = value.getClass();
 
-                if (!variadicArgumentType.isAssignableFrom(valueType) && !boxedType(variadicArgumentType).isAssignableFrom(valueType)) {
+                if (!variadicArgumentType.isAssignableFrom(valueType) && !ReflectionUtil.boxedType(variadicArgumentType).isAssignableFrom(valueType)) {
                     throw new ReflectionCommandCallbackException(value.getClass() + " is not assignable to " +
                             variadicArgumentType);
                 }
