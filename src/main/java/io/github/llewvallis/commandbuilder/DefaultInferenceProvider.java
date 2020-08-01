@@ -11,9 +11,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Provides default {@link ArgumentParser}s for command arguments that don't have a parser explicitly set via inference
+ * annotations.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultInferenceProvider {
 
+    /**
+     * A global instance of this class that new {@link CommandBuilder}s inherit.
+     */
     @Getter
     private static final DefaultInferenceProvider global = new DefaultInferenceProvider();
 
@@ -27,6 +34,11 @@ public class DefaultInferenceProvider {
 
     private Map<Class<?>, ArgumentParser<?>> parsers = new HashMap<>();
 
+    /**
+     * Associate a class with an {@link ArgumentParser}.
+     *
+     * All parents of the provided class that don't have an association will also be associated with the parser.
+     */
     public DefaultInferenceProvider register(Class<?> cls, ArgumentParser<?> parser) {
         if (cls == void.class) {
             throw new IllegalArgumentException("cannot register void");

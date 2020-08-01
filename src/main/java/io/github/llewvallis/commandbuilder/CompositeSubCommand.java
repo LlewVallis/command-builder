@@ -2,6 +2,12 @@ package io.github.llewvallis.commandbuilder;
 
 import java.util.Optional;
 
+/**
+ * A composite command which is nested within a {@link CompositeCommandBuilder}.
+ *
+ * Nesting an instance of this class can be achieved using the {@link CompositeCommandBuilder#nest(CompositeSubCommand)}
+ * method.
+ */
 public abstract class CompositeSubCommand {
 
     public abstract String getName();
