@@ -2,7 +2,7 @@
 
 A framework for constructing Bukkit commands.
 
- [![Maven Central](https://img.shields.io/maven-central/v/io.github.llewvallis/command-builder.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.llewvallis%22%20AND%20a:%22command-builder%22)
+ [![Maven Central](https://img.shields.io/maven-central/v/io.github.llewvallis/command-builder.svg?label=central)](https://search.maven.org/search?q=g:%22io.github.llewvallis%22%20AND%20a:%22command-builder%22)
  [![Javadoc](https://javadoc.io/badge2/io.github.llewvallis/command-builder/javadoc.svg)](https://javadoc.io/doc/io.github.llewvallis/command-builder)
 
 ## Examples
