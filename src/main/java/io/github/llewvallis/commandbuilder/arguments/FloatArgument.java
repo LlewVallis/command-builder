@@ -3,11 +3,16 @@ package io.github.llewvallis.commandbuilder.arguments;
 import io.github.llewvallis.commandbuilder.ArgumentParseException;
 import io.github.llewvallis.commandbuilder.ArgumentParser;
 import io.github.llewvallis.commandbuilder.CommandContext;
+import io.github.llewvallis.commandbuilder.ParserAnnotation;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.With;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +26,19 @@ public class FloatArgument implements ArgumentParser<Float> {
 
     private float min = -Float.MAX_VALUE;
     private float max = Float.MAX_VALUE;
+
+    @ParserAnnotation(FloatArgument.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public @interface Arg {
+
+        float min() default -Float.MAX_VALUE;
+        float max() default Float.MAX_VALUE;
+    }
+
+    private static FloatArgument createParserFromAnnotation(Arg annotation) {
+        return new FloatArgument(annotation.min(), annotation.max());
+    }
 
     @Override
     public Float parse(String argument, int position, CommandContext context) throws ArgumentParseException {

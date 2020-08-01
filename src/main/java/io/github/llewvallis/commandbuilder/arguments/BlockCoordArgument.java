@@ -3,6 +3,7 @@ package io.github.llewvallis.commandbuilder.arguments;
 import io.github.llewvallis.commandbuilder.ArgumentParseException;
 import io.github.llewvallis.commandbuilder.ArgumentParser;
 import io.github.llewvallis.commandbuilder.CommandContext;
+import io.github.llewvallis.commandbuilder.ParserAnnotation;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.BlockCommandSender;
@@ -10,6 +11,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ProxiedCommandSender;
 import org.bukkit.entity.Entity;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +36,18 @@ public class BlockCoordArgument implements ArgumentParser<Integer> {
 
     public enum Axis {
         X, Y, Z
+    }
+
+    @ParserAnnotation(BlockCoordArgument.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public @interface Arg {
+
+        Axis value();
+    }
+
+    private static BlockCoordArgument createParserFromAnnotation(Arg annotation) {
+        return new BlockCoordArgument(annotation.value());
     }
 
     @Override

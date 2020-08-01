@@ -64,7 +64,7 @@ public class ReflectionCommandCallback implements CommandCallback {
             runCallbackUnchecked(callbackMethod, argumentValues, variadicArgumentValues);
         } catch (InvocationTargetException e) {
             Bukkit.getLogger().log(Level.SEVERE, "Unhandled exception in command callback for " + context.getCommand(), e.getCause());
-            throw new ReflectionCommandCallbackException("unhandled exception in callback method ", e);
+            throw new ReflectionCommandCallbackException("unhandled exception in callback method ", e.getCause());
         }
     }
 
@@ -252,13 +252,80 @@ public class ReflectionCommandCallback implements CommandCallback {
     }
 
     private static ArgumentParser<?> getParserForParameter(Object instance, Class<?> cls, Method method, Parameter parameter) {
-        Arg annotation = parameter.getAnnotation(Arg.class);
+        Arg argAnnotation = parameter.getAnnotation(Arg.class);
 
-        if (annotation == null) {
-            throw new ReflectionCommandCallbackException(parameter + " in " + method + " was not annotated with " +
-                    Arg.class);
+        if (argAnnotation != null) {
+            return getParserFromArgAnnotation(argAnnotation, instance, cls, method, parameter);
         }
 
+        Annotation customParserAnnotation = null;
+        for (Annotation annotation : parameter.getDeclaredAnnotations()) {
+            if (annotation.annotationType().isAnnotationPresent(ParserAnnotation.class)) {
+                if (customParserAnnotation == null) {
+                    customParserAnnotation = annotation;
+                } else {
+                    throw new ReflectionCommandCallbackException(parameter + " in " + method + " was annotated with " +
+                            "both " + customParserAnnotation + " and " + annotation);
+                }
+            }
+        }
+
+        if (customParserAnnotation != null) {
+            return getParserFromCustomParserAnnotation(customParserAnnotation);
+        }
+
+        throw new ReflectionCommandCallbackException(parameter + " in " + method + " was not annotated appropriately");
+    }
+
+    private static ArgumentParser<?> getParserFromCustomParserAnnotation(Annotation customParserAnnotation) {
+        ParserAnnotation metaAnnotation = customParserAnnotation.annotationType().getAnnotation(ParserAnnotation.class);
+
+        Class<?> factoryClass = metaAnnotation.value();
+        String factoryMethodName = metaAnnotation.factoryMethodName();
+        Method factoryMethod = getMethodByName(factoryMethodName, factoryClass, factoryClass);
+        factoryMethod.setAccessible(true);
+
+        try {
+            ArgumentParser<?> parser = (ArgumentParser<?>) factoryMethod.invoke(null, customParserAnnotation);
+            if (parser == null) {
+                throw new ReflectionCommandCallbackException("got null from " + factoryMethod);
+            }
+
+            return parser;
+        } catch (InvocationTargetException e) {
+            throw new ReflectionCommandCallbackException("method " + factoryMethod + " threw an unhandled exception", e.getCause());
+        } catch (IllegalArgumentException e) {
+            throw new ReflectionCommandCallbackException("method " + factoryMethod + " did not have the expected signature");
+        } catch (NullPointerException e) {
+            throw new ReflectionCommandCallbackException("method " + factoryMethod + " was not static");
+        } catch (ClassCastException e) {
+            throw new ReflectionCommandCallbackException("method " + factoryMethod + " did not return an argument parser");
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Method getMethodByName(String name, Class<?> currentTarget, Class<?> originalTarget) {
+        List<Method> methodCandidates = new ArrayList<>();
+        methodCandidates.addAll(List.of(currentTarget.getDeclaredMethods()));
+        methodCandidates.addAll(List.of(currentTarget.getMethods()));
+
+        for (Method method : methodCandidates) {
+            if (method.getName().equals(name)) {
+                return method;
+            }
+        }
+
+        Class<?> parent = currentTarget.getSuperclass();
+        if (parent == null) {
+            throw new ReflectionCommandCallbackException("no method named " + name + " in class " + originalTarget);
+        } else {
+            return getMethodByName(name, parent, originalTarget);
+        }
+    }
+
+    private static ArgumentParser<?> getParserFromArgAnnotation(Arg annotation, Object instance, Class<?> cls,
+                                                                Method method, Parameter parameter) {
         Class<?> parserClass = annotation.value();
         String parserMember = annotation.member();
 
@@ -279,7 +346,7 @@ public class ReflectionCommandCallback implements CommandCallback {
                     value = ((Method) fieldOrMethod).invoke(instance);
                 }
             } catch (InvocationTargetException e) {
-                throw new ReflectionCommandCallbackException("method " + fieldOrMethod + " threw an unhandled exception", e);
+                throw new ReflectionCommandCallbackException("method " + fieldOrMethod + " threw an unhandled exception", e.getCause());
             } catch (IllegalAccessException e){
                 throw new RuntimeException(e);
             }
@@ -309,13 +376,14 @@ public class ReflectionCommandCallback implements CommandCallback {
                 throw new ReflectionCommandCallbackException(parserClass + " was abstract");
             } catch (InvocationTargetException e) {
                 throw new ReflectionCommandCallbackException("constructor on " + parserClass + " threw an unhandled " +
-                        "exception", e);
+                        "exception", e.getCause());
             } catch (NoSuchMethodException e) {
                 throw new ReflectionCommandCallbackException("no zero argument constructor on " + parserClass);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         }
+
     }
 
     private static AccessibleObject getFieldOrMethodByName(String name, Class<?> currentTarget, Class<?> originalTarget) {

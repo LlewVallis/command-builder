@@ -113,6 +113,55 @@ public class Plugin extends JavaPlugin {
 }
 ```
 
+## Argument inference
+
+```java
+import io.github.llewvallis.commandbuilder.Arg;
+import io.github.llewvallis.commandbuilder.ArgumentParser;
+import io.github.llewvallis.commandbuilder.CommandBuilder;
+import io.github.llewvallis.commandbuilder.CommandContext;
+import io.github.llewvallis.commandbuilder.ExecuteCommand;
+import io.github.llewvallis.commandbuilder.ReflectionCommandCallback;
+import io.github.llewvallis.commandbuilder.arguments.IntegerArgument;
+import io.github.llewvallis.commandbuilder.arguments.StringArgument;
+import io.github.llewvallis.commandbuilder.arguments.StringSetArgument;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+public class Plugin extends JavaPlugin {
+
+    @Override
+    public void onEnable() {
+        new CommandBuilder()
+            // Add arguments based on method annotations
+            .infer(this)
+            .build(new ReflectionCommandCallback(this), getCommand("print-powers-of-two"));
+    }
+
+    // Create an argument as a field to be reference from an annotation. Zero argument methods also work
+    private ArgumentParser<Integer> customArg = new IntegerArgument().map(x -> (int) Math.pow(2, x));
+
+    @ExecuteCommand
+    private void execute(
+            CommandContext ctx,
+            // Calls the zero argument constructor of StringArgument and then calls optional() on it
+            @Arg(value = StringArgument.class, optional = true) String label,
+            // Uses StringSetArgument's custom Arg annotation to generate an argument
+            @StringSetArgument.Arg({ ",", ":", ";", "-" }) String separator,
+            // Fetch the argument from the customArg field
+            @Arg(member = "customArg") int... numbers
+    ) {
+        String numberString = IntStream.of(numbers)
+                .mapToObj(Integer::toString)
+                .collect(Collectors.joining(separator));
+
+        ctx.getSender().sendMessage(label + " = " + numberString);
+    }
+}
+```
+
 ## Composite commands and subcommands
 
 ```java

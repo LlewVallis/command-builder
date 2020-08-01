@@ -3,11 +3,16 @@ package io.github.llewvallis.commandbuilder.arguments;
 import io.github.llewvallis.commandbuilder.CommandContext;
 import io.github.llewvallis.commandbuilder.ArgumentParseException;
 import io.github.llewvallis.commandbuilder.ArgumentParser;
+import io.github.llewvallis.commandbuilder.ParserAnnotation;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.With;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +26,19 @@ public class IntegerArgument implements ArgumentParser<Integer> {
 
     private int min = Integer.MIN_VALUE;
     private int max = Integer.MAX_VALUE;
+
+    @ParserAnnotation(IntegerArgument.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public @interface Arg {
+
+        int min() default Integer.MIN_VALUE;
+        int max() default Integer.MAX_VALUE;
+    }
+
+    private static IntegerArgument createParserFromAnnotation(Arg annotation) {
+        return new IntegerArgument(annotation.min(), annotation.max());
+    }
 
     @Override
     public Integer parse(String argument, int position, CommandContext context) throws ArgumentParseException {

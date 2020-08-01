@@ -1,9 +1,14 @@
 package io.github.llewvallis.commandbuilder.arguments;
 
-import io.github.llewvallis.commandbuilder.CommandContext;
 import io.github.llewvallis.commandbuilder.ArgumentParseException;
 import io.github.llewvallis.commandbuilder.ArgumentParser;
+import io.github.llewvallis.commandbuilder.CommandContext;
+import io.github.llewvallis.commandbuilder.ParserAnnotation;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Set;
 
@@ -20,6 +25,18 @@ public class StringSetArgument implements ArgumentParser<String> {
 
     public StringSetArgument(String... possibleValues) {
         this(Set.of(possibleValues));
+    }
+
+    @ParserAnnotation(StringSetArgument.class)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public @interface Arg {
+
+        String[] value();
+    }
+
+    private static StringSetArgument createParserFromAnnotation(Arg arg) {
+        return new StringSetArgument(arg.value());
     }
 
     @Override
