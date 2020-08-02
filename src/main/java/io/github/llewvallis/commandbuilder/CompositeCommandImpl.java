@@ -5,6 +5,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
 
 import java.util.Arrays;
@@ -34,7 +35,9 @@ import java.util.stream.Collectors;
         if (permittedSubCommands.containsKey(subCommandName)) {
             String[] subCommandArguments = Arrays.copyOfRange(argumentStrings, 1, argumentStrings.length);
             SubCommand subCommand = permittedSubCommands.get(subCommandName);
-            return subCommand.getOrCreateExecutor().onCommand(sender, command, subCommandName, subCommandArguments);
+
+            return subCommand.getOrCreateExecutor(compositeCommandBuilder.metadata)
+                    .onCommand(sender, command, subCommandName, subCommandArguments);
         } else {
             TextComponent errorMessage = new TextComponent("That subcommand does not exist");
             errorMessage.setColor(ChatColor.RED);
@@ -64,7 +67,9 @@ import java.util.stream.Collectors;
         if (permittedSubCommands.containsKey(subCommandName)) {
             String[] subCommandArguments = Arrays.copyOfRange(argumentStrings, 1, argumentStrings.length);
             SubCommand subCommand = permittedSubCommands.get(subCommandName);
-            return subCommand.getOrCreateExecutor().onTabComplete(sender, command, subCommandName, subCommandArguments);
+
+            return subCommand.getOrCreateExecutor(compositeCommandBuilder.metadata)
+                    .onTabComplete(sender, command, subCommandName, subCommandArguments);
         } else {
             return Collections.emptyList();
         }

@@ -14,5 +14,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface MemberArg {
 
+    /**
+     * The member used to fetch the parser.
+     */
     String value();
 }

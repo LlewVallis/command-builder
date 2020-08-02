@@ -1,11 +1,13 @@
 package io.github.llewvallis.commandbuilder;
 
 import lombok.*;
+import lombok.extern.java.Log;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.plugin.PluginDescriptionFile;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -13,6 +15,7 @@ import java.util.function.Consumer;
 /**
  * Allows building commands which contain several subcommands, including a generated help command.
  */
+@Log
 public class CompositeCommandBuilder {
 
     /* package-private */ final Map<String, SubCommand> subCommands = new HashMap<>();
@@ -21,6 +24,7 @@ public class CompositeCommandBuilder {
 
     /* package-private */ HelpMessageTheme theme = new HelpMessageTheme();
     /* package-private */ Consumer<CommandSender> noArgsAction = this::showGeneralHelp;
+    /* package-private */ Map<String, Object> metadata = new HashMap<>();
 
     /**
      * Describes the coloring applied to the help message.
@@ -30,9 +34,24 @@ public class CompositeCommandBuilder {
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class HelpMessageTheme {
 
+        /**
+         * The color used for the hyphens in the help message header.
+         */
         ChatColor borderColor = ChatColor.YELLOW;
+
+        /**
+         * The color used for the heading text.
+         */
         ChatColor headingColor = ChatColor.WHITE;
+
+        /**
+         * The color used for labels which precede descriptions and other long form information.
+         */
         ChatColor labelColor = ChatColor.GOLD;
+
+        /**
+         * The color used for descriptions and other long form information.
+         */
         ChatColor textColor = ChatColor.WHITE;
     }
 
@@ -72,6 +91,16 @@ public class CompositeCommandBuilder {
     }
 
     /**
+     * Specify a {@link PluginDescriptionFile} which will be used to fill in description, usage and permission
+     * properties for subcommands if they are not present. This is automatically set during auto registration.
+     */
+    public CompositeCommandBuilder metadata(PluginDescriptionFile description, String name) {
+        assertNotConstructed();
+        metadata = Objects.requireNonNullElse(description.getCommands().get(name), Map.of());
+        return this;
+    }
+
+    /**
      * Create an executor which handles delegating to subcommands.
      */
     public TabExecutor build() {
@@ -96,11 +125,37 @@ public class CompositeCommandBuilder {
         command.setTabCompleter(executor);
 
         if (command.getUsage().isBlank()) {
-            String newUsage = command.getLabel() + " <subcommand>";
-            command.setUsage(newUsage);
+            command.setUsage(getDefaultUsage(command.getLabel()));
         }
 
         return executor;
+    }
+
+    /* package-private */ static String getDefaultUsage(String name) {
+        return name + " <subcommand>";
+    }
+
+    /* package-private */ static Map<String, Object> getSubCommandMetadata(Map<String, Object> metadata, String name) {
+        Object subCommandsObject = metadata.get("subcommands");
+        if (subCommandsObject instanceof Map) {
+            Object subCommandObject = ((Map) subCommandsObject).get(name);
+
+            if (subCommandObject instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> subCommandMetadata = (Map<String, Object>) subCommandObject;
+                return subCommandMetadata;
+            } else if (subCommandObject == null) {
+                return Map.of();
+            } else {
+                log.warning("Expected object under property subcommands." + name + " but found " + subCommandObject);
+                return Map.of();
+            }
+        } else if (subCommandsObject == null) {
+            return Map.of();
+        } else {
+            log.warning("Expected object under property subcommands but found " + subCommandsObject);
+            return Map.of();
+        }
     }
 
     /* package-private */ void showGeneralHelp(CommandSender sender) {
@@ -111,15 +166,20 @@ public class CompositeCommandBuilder {
         permittedSubCommands.stream()
                 .filter(SubCommand::isNested)
                 .forEach(subCommand -> {
+                    String description = subCommand.getResolvedDescription(metadata);
+
                     message.append("\n" + subCommand.getName()).color(theme.labelColor);
-                    message.append("\n\u2514 " + shortenDescription(subCommand.getDescription())).color(theme.textColor);
+                    message.append("\n\u2514 " + shortenDescription(description)).color(theme.textColor);
                 });
 
         permittedSubCommands.stream()
                 .filter(subCommand -> !subCommand.isNested())
                 .forEach(subCommand -> {
-                    message.append("\n" + subCommand.getUsageMessage()).color(theme.labelColor);
-                    message.append("\n\u2514 " + shortenDescription(subCommand.getDescription())).color(theme.textColor);
+                    String usage = subCommand.getResolvedUsageMessage(metadata);
+                    String description = subCommand.getResolvedDescription(metadata);
+
+                    message.append("\n" + usage).color(theme.labelColor);
+                    message.append("\n\u2514 " + shortenDescription(description)).color(theme.textColor);
                 });
 
         sender.spigot().sendMessage(message.create());
@@ -128,12 +188,14 @@ public class CompositeCommandBuilder {
     /* package-private */ void showSpecificHelp(CommandSender sender, SubCommand subCommand) {
         ComponentBuilder message = createHelpHeader(subCommand.getName());
 
+        String description = subCommand.getResolvedDescription(metadata);
         message.append("\nDescription: ").color(theme.labelColor);
-        message.append(subCommand.getDescription()).color(theme.textColor);
+        message.append(description).color(theme.textColor);
 
         if (!subCommand.isNested()) {
+            String usage = subCommand.getResolvedUsageMessage(metadata);
             message.append("\nUsage: ").color(theme.labelColor);
-            message.append(subCommand.getUsageMessage()).color(theme.textColor);
+            message.append(usage).color(theme.textColor);
         }
 
         sender.spigot().sendMessage(message.create());
@@ -163,7 +225,7 @@ public class CompositeCommandBuilder {
     /* package-private */ Map<String, SubCommand> permittedSubCommands(CommandSender sender) {
         Map<String, SubCommand> permittedSubCommands = new HashMap<>(subCommands);
         permittedSubCommands.values().removeIf(subCommand ->
-                subCommand.getPermission()
+                subCommand.getResolvedPermission(metadata)
                         .map(perm -> !sender.hasPermission(perm))
                         .orElse(false)
         );

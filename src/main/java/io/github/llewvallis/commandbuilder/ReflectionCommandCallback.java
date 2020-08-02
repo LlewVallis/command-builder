@@ -1,5 +1,6 @@
 package io.github.llewvallis.commandbuilder;
 
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -14,13 +15,10 @@ import java.util.logging.Level;
 /**
  * A {@link CommandCallback} which delegates to a method annotated with {@link ExecuteCommand} on a provided instance.
  */
+@RequiredArgsConstructor
 public class ReflectionCommandCallback implements CommandCallback {
 
     private final Object instance;
-
-    public ReflectionCommandCallback(Object instance) {
-        this.instance = instance;
-    }
 
     @Override
     public void onSuccess(List<Object> argumentValues, List<Object> variadicArgumentValues, CommandContext context) {

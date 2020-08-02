@@ -3,14 +3,16 @@ package io.github.llewvallis.commandbuilder;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * A utility to quickly construct parsing logic for commands.
+ *
+ * @see AutoCommandBuilder
  */
 public class CommandBuilder {
 

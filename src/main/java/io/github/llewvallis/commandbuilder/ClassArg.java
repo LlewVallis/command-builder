@@ -13,5 +13,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface ClassArg {
 
+    /**
+     * The class used to create the parser.
+     */
     Class<?> value();
 }

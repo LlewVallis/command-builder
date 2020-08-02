@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
 
 /* package-private */ class HelpCommandImpl extends SubCommand {
 
-    private CompositeCommandBuilder builder;
+    private CompositeCommandBuilder compositeBuilder;
 
     public HelpCommandImpl(CompositeCommandBuilder builder) {
-        this.builder = builder;
+        this.compositeBuilder = builder;
     }
 
     @Override
@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
         builder.argument(new ArgumentParser<SubCommand>() {
             @Override
             public SubCommand parse(String argument, int position, CommandContext context) throws ArgumentParseException {
-                SubCommand subCommand = HelpCommandImpl.this.builder.subCommands.get(argument);
+                SubCommand subCommand = compositeBuilder.subCommands.get(argument);
 
-                if (subCommand == null || !subCommand.getPermission()
+                if (subCommand == null || !subCommand.getResolvedPermission(compositeBuilder.metadata)
                         .map(context.getSender()::hasPermission)
                         .orElse(true)) {
                     throw new ArgumentParseException("no such subcommand");
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
             @Override
             public Set<String> complete(List<Object> parsedArguments, String currentArgument, int position, CommandContext context) {
-                return HelpCommandImpl.this.builder.permittedSubCommands(context.getSender()).values().stream()
+                return HelpCommandImpl.this.compositeBuilder.permittedSubCommands(context.getSender()).values().stream()
                         .map(SubCommand::getName)
                         .collect(Collectors.toSet());
             }
@@ -55,9 +55,9 @@ import java.util.stream.Collectors;
     @ExecuteCommand
     private void execute(CommandContext ctx, SubCommand subCommand) {
         if (subCommand == null) {
-            builder.showGeneralHelp(ctx.getSender());
+            compositeBuilder.showGeneralHelp(ctx.getSender());
         } else {
-            builder.showSpecificHelp(ctx.getSender(), subCommand);
+            compositeBuilder.showSpecificHelp(ctx.getSender(), subCommand);
         }
     }
 }

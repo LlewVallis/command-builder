@@ -14,5 +14,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface OptionalArg {
 
+    /**
+     * Whether to force the argument to be optional or non-optional.
+     */
     boolean optional() default true;
 }

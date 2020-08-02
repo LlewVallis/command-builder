@@ -16,8 +16,19 @@ import java.util.List;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public class CommandContext {
 
+    /**
+     * The entity (or non-entity) which sent the command.
+     */
     private final CommandSender sender;
+
+    /**
+     * The root command that was sent.
+     */
     private final Command command;
+
+    /**
+     * The alias or subcommand name used to send the command.
+     */
     private final String alias;
 
     /**

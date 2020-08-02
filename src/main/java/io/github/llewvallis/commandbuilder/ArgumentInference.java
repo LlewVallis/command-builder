@@ -5,8 +5,6 @@ import lombok.extern.java.Log;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Log
@@ -124,7 +122,7 @@ import java.util.Optional;
 
         Class<?> factoryClass = metaAnnotation.value();
         String factoryMethodName = metaAnnotation.factoryMethodName();
-        Method factoryMethod = getMethodByName(factoryMethodName, factoryClass, factoryClass);
+        Method factoryMethod = ReflectionUtil.getMethodByName(factoryMethodName, factoryClass, factoryClass);
         factoryMethod.setAccessible(true);
 
         if (!factoryMethod.isAnnotationPresent(ArgumentInferenceFactory.class)) {
@@ -155,25 +153,6 @@ import java.util.Optional;
             throw new ReflectionCommandCallbackException("method " + factoryMethod + " did not return an argument parser");
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    private Method getMethodByName(String name, Class<?> currentTarget, Class<?> originalTarget) {
-        List<Method> methodCandidates = new ArrayList<>();
-        methodCandidates.addAll(List.of(currentTarget.getDeclaredMethods()));
-        methodCandidates.addAll(List.of(currentTarget.getMethods()));
-
-        for (Method method : methodCandidates) {
-            if (method.getName().equals(name)) {
-                return method;
-            }
-        }
-
-        Class<?> parent = currentTarget.getSuperclass();
-        if (parent == null) {
-            throw new ReflectionCommandCallbackException("no method named " + name + " in class " + originalTarget);
-        } else {
-            return getMethodByName(name, parent, originalTarget);
         }
     }
 }

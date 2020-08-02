@@ -6,13 +6,35 @@ import java.util.Optional;
  * A composite command which is nested within a {@link CompositeCommandBuilder}.
  *
  * Nesting an instance of this class can be achieved using the {@link CompositeCommandBuilder#nest(CompositeSubCommand)}
- * method.
+ * method or through auto registration.
  */
 public abstract class CompositeSubCommand {
 
+    /**
+     * The name and label of the subcommand.
+     */
     public abstract String getName();
 
-    public abstract String getDescription();
+    /**
+     * The description of the subcommand.
+     *
+     * If this throws an {@link InferFromMetadataException} the description will be fetched from the
+     * {@link CompositeCommandBuilder}'s metadata.
+     */
+    public String getDescription() {
+        throw new InferFromMetadataException();
+    }
+
+    /**
+     * An optional permission which will additionally be required for the subcommand and its children.
+     *
+     * If this throws an {@link InferFromMetadataException} the permission will be fetched from the
+     * {@link CompositeCommandBuilder}'s metadata. Note that returning {@link Optional#empty()} from this method will
+     * cause permission metadata to be ignored.
+     */
+    public Optional<String> getPermission() {
+        throw new InferFromMetadataException();
+    }
 
     /**
      * Configure the composite command builder by, for example, adding commands.
@@ -22,10 +44,4 @@ public abstract class CompositeSubCommand {
      */
     protected void configure(CompositeCommandBuilder builder) { }
 
-    /**
-     * An optional permission which will additionally be required for the subcommand and its children.
-     */
-    public Optional<String> getPermission() {
-        return Optional.empty();
-    }
 }

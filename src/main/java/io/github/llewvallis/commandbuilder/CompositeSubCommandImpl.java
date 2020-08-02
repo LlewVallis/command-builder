@@ -2,6 +2,7 @@ package io.github.llewvallis.commandbuilder;
 
 import org.bukkit.command.TabExecutor;
 
+import java.util.Map;
 import java.util.Optional;
 
 /* package-private */ class CompositeSubCommandImpl extends SubCommand {
@@ -9,18 +10,20 @@ import java.util.Optional;
     private final CompositeSubCommand subCommand;
     private final TabExecutor executor;
 
-    public CompositeSubCommandImpl(CompositeCommandBuilder compositeCommandBuilder, CompositeSubCommand subCommand) {
+    public CompositeSubCommandImpl(CompositeCommandBuilder parent, CompositeSubCommand subCommand) {
         this.subCommand = subCommand;
 
         CompositeCommandBuilder builder = new CompositeCommandBuilder();
-        builder.helpMessageTheme(compositeCommandBuilder.theme);
+
+        builder.helpMessageTheme(parent.theme);
+        builder.metadata = CompositeCommandBuilder.getSubCommandMetadata(parent.metadata, getName());
+
         subCommand.configure(builder);
         executor = builder.build();
-
     }
 
     @Override
-    TabExecutor getOrCreateExecutor() {
+    /* package-private */ TabExecutor getOrCreateExecutor(Map<String, Object> metadata) {
         return executor;
     }
 
