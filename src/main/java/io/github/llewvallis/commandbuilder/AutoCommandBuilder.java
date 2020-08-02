@@ -15,6 +15,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -45,10 +46,12 @@ public class AutoCommandBuilder {
     /**
      * Use a JAR file as a source of classes for scanning.
      *
-     * This is most commonly used in conjunction with {@link JavaPlugin#getFile()}.
+     * This is most commonly used in conjunction with the (protected) {@code getFile} method of {@link JavaPlugin}. The
+     * provided regular expression will be applied against the full class name of each candidate, and if no match is
+     * found within the class name, it will be discarded.
      */
-    public AutoCommandBuilder jarSource(File file) {
-        return source(new JarAutoCommandSource(file));
+    public AutoCommandBuilder jarSource(File file, String classNamePattern) {
+        return source(new JarAutoCommandSource(file, Pattern.compile(classNamePattern)));
     }
 
     /**

@@ -12,12 +12,14 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 @Log
 @RequiredArgsConstructor
 /* package-private */ class JarAutoCommandSource implements AutoCommandSource {
 
     private final File file;
+    private final Pattern pattern;
 
     @Override
     public Set<Class<?>> getClassesForScanning() {
@@ -34,9 +36,11 @@ import java.util.logging.Level;
                             .substring(0, entryName.length() - ".class".length())
                             .replace("/", ".");
 
-                    try {
-                        classes.add(Class.forName(className));
-                    } catch (ClassNotFoundException ignored) {
+                    if (pattern.matcher(className).find()) {
+                        try {
+                            classes.add(Class.forName(className));
+                        } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
+                        }
                     }
                 }
             }
