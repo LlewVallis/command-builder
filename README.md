@@ -37,6 +37,21 @@ public class MyPlugin extends JavaPlugin {
 Command builder also lets you define your own types of arguments and has other powerful features to make creating 
 commands easy. Feel free to contact `LlewVallis#5734` on Discord if there is any thing I can help with.
 
+## Installation
+
+Add the library you your own plugin using Maven:
+
+```xml
+<dependency>
+    <groupId>io.github.llewvallis</groupId>
+    <artifactId>command-builder</artifactId>
+    <version>2.2.0</version>
+</dependency>
+```
+
+It is recommended to [shade](https://maven.apache.org/plugins/maven-shade-plugin) this dependency to avoid clashes with
+other plugins that use command builder.
+
 ## Concepts
 ### Command builders
 
